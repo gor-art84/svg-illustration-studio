@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Конструктор иллюстраций</title>
+  <style>
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; background: #f1f0eb; color: #22241e; font: 15px system-ui, sans-serif; }
+    main { width: min(1340px, 100% - 32px); margin: 32px auto; }
+    header, .settings, .panel-heading, .layer, .swatch { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    header { margin-bottom: 20px; flex-wrap: wrap; }
+    h1 { font-size: clamp(26px, 4vw, 38px); letter-spacing: -.04em; margin: 0; }
+    h2 { font-size: 15px; margin: 0; }
+    p { margin: 0; color: #54564d; }
+    .workspace { display: grid; grid-template-columns: 232px minmax(0, 1fr) 224px; gap: 16px; align-items: start; }
+    .panel, .stage { border: 1px solid #ddded5; border-radius: 14px; background: #fff; padding: 14px; }
+    .panel { display: grid; gap: 14px; }
+    .settings label, .palette-select { display: grid; gap: 5px; font-size: 13px; }
+    .settings { align-items: end; flex-wrap: wrap; }
+    .assembly { margin-bottom: 16px; }
+    .assembly-fields { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr) auto; align-items: end; gap: 10px; }
+    .assembly-fields label { display: grid; gap: 5px; font-size: 13px; }
+    .assembly-fields input { min-width: 0; width: 100%; padding: 7px 9px; border: 1px solid #dedfd7; border-radius: 7px; font: inherit; }
+    .assembly p { font-size: 13px; }
+    .assembly p[data-error="true"] { color: #a42c24; }
+    .stage { display: grid; align-items: center; min-height: 260px; background: #e7e8df; }
+    .artboard { --canvas-ratio: 1.6; position: relative; width: min(100%, calc(68vh * var(--canvas-ratio))); aspect-ratio: var(--canvas-ratio); justify-self: center; display: grid; place-items: center; background: #f8f7f1; box-shadow: 0 8px 28px #22241e20; }
+    .artboard > svg { display: block; width: 100%; height: 100%; touch-action: none; }
+    .artboard [data-object-id] { cursor: grab; }
+    .artboard[data-dragging] [data-object-id] { cursor: grabbing; }
+    .assets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .asset { display: grid; grid-template-rows: 54px auto; justify-items: center; align-items: center; gap: 4px; padding: 5px; font-size: 12px; }
+    .asset svg { width: 100%; height: 100%; overflow: visible; }
+    button, select { border: 1px solid #dedfd7; border-radius: 7px; color: inherit; background: #f8f8f4; padding: 7px; font: inherit; }
+    button { cursor: pointer; }
+    button:hover:not(:disabled) { background: #eff1e9; }
+    .primary { display: inline-block; border: 1px solid #26392c; border-radius: 7px; background: #26392c; color: #fff; padding: 7px 13px; text-decoration: none; }
+    .primary[href]:hover { background: #344d3c; }
+    .primary[aria-disabled="true"] { opacity: .5; }
+    button:disabled { opacity: .5; cursor: default; }
+    ul { list-style: none; display: grid; gap: 7px; margin: 0; padding: 0; }
+    .layer { border-bottom: 1px solid #eeeee8; padding-bottom: 6px; }
+    .layer small { display: block; color: #66685e; }
+    .layer button { padding: 3px 7px; }
+    .layer .layer-select { flex: 1; min-width: 0; text-align: left; }
+    .layer-select[aria-pressed="true"] { background: #e8efe5; border-color: #819980; }
+    .object-controls { margin: 0; border: 1px solid #dedfd7; border-radius: 8px; padding: 8px; }
+    .object-controls legend { font-size: 13px; }
+    .coordinates, .layer-actions { display: grid; gap: 6px; }
+    .coordinates { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 8px; }
+    .coordinates label { display: grid; gap: 4px; font-size: 12px; }
+    .coordinates input { width: 100%; min-width: 0; border: 1px solid #dedfd7; border-radius: 6px; padding: 4px; font: inherit; }
+    .layer-actions { grid-template-columns: 1fr 1fr; }
+    #duplicate { grid-column: 1 / -1; }
+    .swatches { display: grid; gap: 5px; }
+    .palette-upload { display: grid; gap: 5px; font-size: 13px; }
+    .palette-upload input { min-width: 0; width: 100%; font: inherit; }
+    .palette-upload a { color: #294b37; }
+    .palette-upload p[data-error="true"] { color: #a42c24; }
+    .swatch { font: 12px monospace; }
+    input[type="color"] { width: 36px; height: 24px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+    .measurement { position: fixed; left: -10000px; top: 0; visibility: hidden; }
+    @media (max-width: 850px) { .workspace { grid-template-columns: 190px minmax(0, 1fr); } .controls { grid-column: 1 / -1; } }
+    @media (max-width: 520px) { .workspace { grid-template-columns: 1fr; } .assets { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 620px) { .assembly-fields { grid-template-columns: 1fr; } }
+  </style>
+  <script defer src="library.js"></script>
+  <script defer src="assembly.js"></script>
+  <script defer src="editor.js"></script>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Конструктор иллюстраций</h1>
+    <div class="settings">
+      <label>Формат холста
+        <select id="format">
+          <option value="square">Квадратный · 800 × 800</option>
+          <option value="landscape" selected>Горизонтальный · 960 × 600</option>
+          <option value="portrait">Вертикальный · 600 × 960</option>
+        </select>
+      </label>
+      <label>Детализация <select id="size"><option>S</option><option selected>L</option></select></label>
+      <a id="download" class="primary" aria-disabled="true">Скачать SVG</a>
+    </div>
+  </header>
+  <form id="assembly" class="panel assembly" aria-label="Автоматическая сборка">
+    <div class="assembly-fields">
+      <label>Способ сборки
+        <select id="assembly-mode">
+          <option value="idea">По заголовку или метафоре</option>
+          <option value="names">По списку названий</option>
+        </select>
+      </label>
+      <label><span id="assembly-label">Заголовок или метафора</span>
+        <input id="assembly-query" type="text" placeholder="Вечер за учёбой" aria-describedby="assembly-help assembly-result">
+      </label>
+      <button type="submit">Собрать композицию</button>
+    </div>
+    <p id="assembly-help">Подберёт до трёх объектов по тегам и разместит их на холсте.</p>
+    <p id="assembly-result" role="status" hidden></p>
+  </form>
+  <div class="workspace">
+    <section class="panel" aria-label="Библиотека">
+      <div class="panel-heading"><h2>Объекты</h2><select id="role" aria-label="Роль нового объекта">
+        <option value="primary">Главные</option><option value="background">Фоновые</option>
+      </select></div>
+      <div class="assets" id="assets"></div>
+    </section>
+    <section class="stage" aria-label="Холст">
+      <div class="artboard" id="artboard">
+        <p id="empty">Выберите объекты из библиотеки</p>
+        <svg id="preview" hidden viewBox="0 0 960 600" fill="none" aria-label="Композиция на холсте"></svg>
+      </div>
+    </section>
+    <section class="panel controls" aria-label="Свойства композиции">
+      <h2>Слои</h2>
+      <p id="status" role="status">Холст 960 × 600</p>
+      <ul id="layers"></ul>
+      <fieldset class="object-controls" id="object-controls" hidden>
+        <legend id="selected-name">Выбранный объект</legend>
+        <div class="coordinates">
+          <label>X <input type="number" id="object-x" step="any"></label>
+          <label>Y <input type="number" id="object-y" step="any"></label>
+          <label>Угол (°) <input type="number" id="object-angle" step="any"></label>
+        </div>
+        <div class="layer-actions">
+          <button type="button" id="forward">Выше</button>
+          <button type="button" id="backward">Ниже</button>
+          <button type="button" id="duplicate">Дублировать</button>
+        </div>
+      </fieldset>
+      <label class="palette-select">Палитра
+        <select id="palette"><option value="original">Исходная</option><option value="peach">Персиковая</option><option value="mint">Бирюзовая</option><option value="custom" disabled>Своя</option></select>
+      </label>
+      <div class="palette-upload">
+        <label for="palette-file">Загрузить палитру</label>
+        <input id="palette-file" type="file" accept=".json,application/json" aria-describedby="palette-help palette-result">
+        <p id="palette-help">JSON с восемью HEX-цветами. <a href="palette-example.json" download>Скачать шаблон</a></p>
+        <p id="palette-result" role="status" hidden></p>
+      </div>
+      <div class="swatches" id="swatches"></div>
+    </section>
+  </div>
+</main>
+</body>
+</html>

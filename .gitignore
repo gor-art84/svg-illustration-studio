@@ -1,0 +1,6 @@
+.DS_Store
+.idea/
+__pycache__/
+/figma-source/
+/book-*.svg
+/illustration-*.svg
